@@ -54,11 +54,8 @@ The biggest trap for beginners is assuming that Kafka guarantees global order. I
 
 If you send clicks for "User A" and "User B" to different partitions, there is no guarantee which one will be processed first. If your analytics require that you see all clicks for a specific user in the exact order they happened, you must ensure that all clicks for that `user_id` land in the same partition.
 
-The standard way to do this is by using the `user_id` as the message key. Kafka uses a hashing algorithm on the key to ensure that every message with the same `user_id` consistently ends up in the same partition. <!-- VERIFY: check if key-based partitioning is the standard recommendation for order-sensitive data -->
+The standard way to do this is by using the `user_id` as the message key. Kafka uses a hashing algorithm on the key to ensure that every message with the same `user_id` consistently ends up in the same partition. 
 
 If you do not provide a key, Kafka typically uses a round-robin strategy, which spreads messages evenly across partitions but destroys any meaningful order. Always pick a partition key that aligns with the requirements of your downstream application. If you do not need strict ordering, round-robin is fine and keeps your partitions balanced in size. If you do need order, think carefully about your key before you start producing data.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
 
