@@ -11,7 +11,7 @@ topics:
   status: done
 - title: 'A Beginner''s Map of Kafka: Topics, Partitions and Consumer Groups'
   angle: The three ideas that confuse newcomers most, explained with one running example.
-  status: pending
+  status: done
 - title: 'RAG in Practice: Chunking, Embeddings and Retrieval Without the Hype'
   angle: What actually matters when building a retrieval pipeline, and common failure modes.
   status: pending
