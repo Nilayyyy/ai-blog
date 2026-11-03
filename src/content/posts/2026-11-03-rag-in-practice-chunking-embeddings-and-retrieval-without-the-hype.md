@@ -16,7 +16,7 @@ Instead of fixed windows, look at the structure of your documents. If you are us
 
 ## Choosing an Embedding Model
 
-There is a temptation to chase the highest score on the MTEB leaderboard. While these scores provide a baseline, they rarely predict how a model will perform on your specific domain data. A model trained on general web-crawled text may perform poorly on specialized medical, legal, or technical documentation. <!-- VERIFY: check current state of MTEB benchmarks -->
+There is a temptation to chase the highest score on the MTEB leaderboard. While these scores provide a baseline, they rarely predict how a model will perform on your specific domain data. A model trained on general web-crawled text may perform poorly on specialized medical, legal, or technical documentation. 
 
 The most effective approach is to build a small evaluation set. Create 50 to 100 questions your users might ask and manually identify the specific chunks that contain the correct answers. Run these queries against a few candidate models and measure the "top-k" accuracy—how often the correct chunk appears in the top results. If a smaller model consistently retrieves the right data for your domain, there is no technical reason to pay for a larger, more general model.
 
@@ -40,7 +40,4 @@ Start by measuring two metrics: retrieval precision (did we find the right chunk
 
 Build a dashboard that tracks this metric every time you change your chunking strategy or embedding model. If your precision drops, you know your retrieval pipeline has drifted. By separating retrieval evaluation from generation evaluation, you stop guessing why a prompt failed. You can see clearly if the error was a failure to find the right data or a failure of the LLM to synthesize the data you provided.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
 
