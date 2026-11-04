@@ -28,7 +28,7 @@ When you provision an instance, you select an **Availability Domain (AD)** or a 
 
 Data persistence in OCI is divided into two categories: Block Volumes and Object Storage.
 
-**Block Storage** acts like a hard drive attached to your compute instance. It is high-performance and low-latency. You use it for operating systems, application files, and databases. If you stop your instance, the data remains on the block volume. You can detach a volume from one instance and attach it to another within the same AD. <!-- VERIFY: check cross-AD attachment limitations -->
+**Block Storage** acts like a hard drive attached to your compute instance. It is high-performance and low-latency. You use it for operating systems, application files, and databases. If you stop your instance, the data remains on the block volume. You can detach a volume from one instance and attach it to another within the same AD.
 
 **Object Storage** is for unstructured data: logs, backups, images, or large datasets. It is not attached to a server. You access it via an API or a URL. It is highly durable and scales automatically. Object storage is organized into "buckets." Use it for static assets or data that needs to be accessed by multiple services simultaneously.
 
@@ -75,8 +75,4 @@ resource "oci_core_vcn" "main_vcn" {
 ```
 
 Start by creating a simple VCN and a single VM using Terraform. Once you see the resources appear in your console, you will understand how OCI translates API calls into physical infrastructure. Focus on mastering the VCN and IAM components first; the rest of the ecosystem builds on these two foundations.
-
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
 
