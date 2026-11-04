@@ -17,7 +17,7 @@ topics:
   status: done
 - title: 'Getting Started with OCI: The Five Services Worth Learning First'
   angle: A practical orientation for developers coming from another cloud or from none.
-  status: pending
+  status: done
 - title: 'Spring Boot Microservices: What Breaks When You Add a Message Queue'
   angle: Idempotency, retries and ordering, explained with small examples.
   status: pending
