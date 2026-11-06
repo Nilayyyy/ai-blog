@@ -27,8 +27,6 @@ public void handlePaymentEvent(PaymentEvent event) {
 }
 ```
 
-<!-- VERIFY: implementation patterns for idempotency keys -->
-
 The check and the save must happen within the same database transaction. If they don't, you risk a race condition where two threads process the same message simultaneously and both see that the ID hasn't been saved yet.
 
 ## Retry loops and circuit breakers
@@ -73,8 +71,4 @@ With the correlation ID in your logs, you can search your logging aggregation to
 Moving to an asynchronous architecture changes your mental model. You are no longer writing a script that executes from top to bottom. You are writing reactive rules that must survive partial failures, duplicate inputs, and out-of-order execution.
 
 Start small. Before you reach for a message queue, ask if the complexity of managing these failure modes is worth the performance gains. If you do move to a queue, prioritize observability and idempotency from the first commit. It is significantly harder to retroactively add idempotency to a system that has already processed thousands of duplicate transactions.
-
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
 
