@@ -38,7 +38,7 @@ The primary cost of an autonomous database is the reduction in observability and
 
 When you lose control over configuration parameters, you lose the ability to perform fine-grained tuning. If the database engine shifts its memory allocation in a way that conflicts with a specific, unusual workload pattern, you may struggle to force the engine back into a stable state.
 
-These "black box" performance issues are difficult to troubleshoot. Because the system is constantly adjusting itself, it can be hard to determine if a performance dip is caused by your recent code deployment, a change in user traffic, or a background decision made by the tuning engine. Debugging requires a shift from looking at configuration files to analyzing audit logs and automated telemetry reports. <!-- VERIFY: check if observability tools provide enough transparency for deep debugging -->
+These "black box" performance issues are difficult to troubleshoot. Because the system is constantly adjusting itself, it can be hard to determine if a performance dip is caused by your recent code deployment, a change in user traffic, or a background decision made by the tuning engine. Debugging requires a shift from looking at configuration files to analyzing audit logs and automated telemetry reports.
 
 ## When to Choose Autonomous
 
@@ -49,8 +49,4 @@ If your team is small and lacks dedicated database engineering support, an auton
 However, if your application has highly specific performance requirements or unusual data access patterns, the "black box" nature of autonomous systems can become a liability. In these cases, a traditional managed database—where you retain control over configuration—is often the safer choice.
 
 Evaluate your choice based on team capacity. If you spend significant time managing database infrastructure, moving to an autonomous service will likely improve your velocity. If your primary constraint is performance predictability, prioritize a platform that offers transparent configuration and granular control, even if it requires more manual maintenance.
-
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
 
