@@ -24,3 +24,29 @@ topics:
 - title: 'Autonomous Database for Developers: What It Automates and What It Doesn''t'
   angle: Honest overview of the managed-database tradeoffs.
   status: done
+- title: 'OCI Compartments and Policies: How to Manage Permissions Without Complexity'
+  angle: Focus on the core logic of IAM groups and compartment hierarchy rather than just clicking buttons.
+  status: done
+- title: 'Beyond Simple Queries: Implementing Change Data Capture for Your Lakehouse'
+  angle: Explain how to move data incrementally from operational databases into Silver layers.
+  status: pending
+- title: 'Vector Databases for RAG: When Do You Actually Need a Specialized Store?'
+  angle: Compare the trade-offs of using pgvector or OCI Search vs. managing a standalone vector database.
+  status: pending
+- title: The Lifecycle of a Kafka Message in a Spring Boot Service
+  angle: Trace the path from producer send to consumer commit and why acknowledging failures matters.
+  status: pending
+- title: 'Moving from Monolith to Microservices: When to Keep Your Data Together'
+  angle: Discuss the architectural trap of distributed transactions and how to avoid them with event-driven
+    patterns.
+  status: pending
+- title: 'OCI Object Storage Lifecycle Policies: Automating Data Archival'
+  angle: Detail how to use lifecycle rules to move aging data to lower-cost storage tiers.
+  status: pending
+- title: How to Test RAG Pipelines Without Relying on User Feedback
+  angle: 'Introduce automated evaluation metrics like RAGAS or basic similarity scoring for retrieval
+    quality. <!-- VERIFY: check current state of RAG evaluation frameworks -->'
+  status: pending
+- title: 'Technical Documentation for Junior Engineers: Writing for Your Future Self'
+  angle: Provide a framework for documenting API contracts and system diagrams that actually stay relevant.
+  status: pending
