@@ -2,20 +2,26 @@
 import Base from '../layouts/Base.astro';
 import { SITE_TITLE, SITE_DESCRIPTION } from '../config';
 import { getPublishedPosts } from '../lib/posts';
+import { formatDate, kindLabel } from '../lib/format';
 
 const posts = await getPublishedPosts();
-const fmt = (d: Date) => d.toISOString().slice(0, 10);
 ---
 <Base title={SITE_TITLE} description={SITE_DESCRIPTION}>
-  <p class="muted">{SITE_DESCRIPTION}</p>
-  {posts.length === 0 && <p>No posts yet.</p>}
-  <ul class="posts">
+  <section class="intro">
+    <h1>{SITE_TITLE}</h1>
+    <p>{SITE_DESCRIPTION}</p>
+  </section>
+  {posts.length === 0 && <p class="empty">No posts yet. The first one appears after you merge a draft.</p>}
+  <ol class="entries">
     {posts.map((p) => (
-      <li>
-        <a href={`/posts/${p.id}/`}>{p.data.title}</a>
-        <div class="muted">{fmt(p.data.pubDate)}</div>
-        <div>{p.data.description}</div>
+      <li class="entry">
+        <time class="entry-date" datetime={p.data.pubDate.toISOString().slice(0, 10)}>{formatDate(p.data.pubDate)}</time>
+        <div>
+          {kindLabel(p.data.kind) && <span class={`chip chip-${p.data.kind}`}>{kindLabel(p.data.kind)}</span>}
+          <h2><a href={`/posts/${p.id}/`}>{p.data.title}</a></h2>
+          <p>{p.data.description}</p>
+        </div>
       </li>
     ))}
-  </ul>
+  </ol>
 </Base>

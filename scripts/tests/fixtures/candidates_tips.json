@@ -1,0 +1,5 @@
+[
+  {"title": "TIL: zero-context git diffs make LLM edits easy to review", "url": "https://til.example.test/git-diff-u0", "source": "Example TIL", "weight": 1.0, "hours_ago": 60, "summary": "Use git diff -U0 to see only changed lines."},
+  {"title": "Validating LLM JSON output with a schema before it spreads", "url": "https://dev.example.test/validate-llm-json", "source": "Example Dev", "weight": 0.5, "hours_ago": 90, "summary": "A short pattern for failing loudly on malformed model output."},
+  {"title": "Prompt caching: order your prompt for cheaper calls", "url": "https://blog.example.test/prompt-caching", "source": "Example Blog", "weight": 0.7, "hours_ago": 120, "summary": "Put stable content first so the cache can reuse it."}
+]

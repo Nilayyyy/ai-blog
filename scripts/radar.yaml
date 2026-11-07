@@ -1,0 +1,77 @@
+# Where the radar looks. This is configuration, not a topic list: what gets written
+# about is decided fresh on every run from whatever these sources are saying.
+#
+# Check which sources work from your machine:  python scripts/generate.py --check-sources
+# A source that fails is skipped; the run only stops if nothing at all comes back.
+
+# Words that nudge a story up the ranking (matched against title + summary, lowercase).
+keywords:
+  launch: 3
+  launches: 3
+  released: 3
+  release: 2
+  introducing: 3
+  announces: 2
+  open-source: 3
+  open source: 3
+  open-weights: 3
+  agent: 2
+  agents: 2
+  mcp: 2
+  model: 1
+  benchmark: 1
+  reasoning: 2
+  multimodal: 2
+  inference: 2
+  fine-tun: 1
+  context window: 2
+  coding: 2
+  robot: 2
+  startup: 2
+
+news:
+  max_age_hours: 72          # widened to 7 days automatically if nothing qualifies
+  require_ai: true           # drop items from general feeds that don't look AI-related
+  hn:                        # Hacker News via the Algolia API
+    min_points: 40
+    weight: 0.6
+    queries: [AI, LLM, Claude, OpenAI, Gemini, "AI agent", MCP, "open source model", Anthropic, DeepSeek, Mistral, "Hugging Face", inference, "AI coding"]
+  github:                    # brand-new AI repos that are gaining stars fast
+    min_stars: 150
+    window_days: 10
+    weight: 0.5
+    topics: [llm, ai-agents, mcp, rag, generative-ai]
+  feeds:                     # weight: how much we trust the source as a primary; ai: true = AI-only feed
+    - {name: OpenAI,            url: "https://openai.com/news/rss.xml", weight: 1.0, ai: true}
+    - {name: Anthropic,         url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml", weight: 1.0, ai: true}
+    - {name: Anthropic Engineering, url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml", weight: 0.9, ai: true}
+    - {name: Google AI,         url: "https://blog.google/technology/ai/rss/", weight: 0.9, ai: true}
+    - {name: Google DeepMind,   url: "https://deepmind.google/blog/rss.xml", weight: 0.9, ai: true}
+    - {name: Hugging Face,      url: "https://huggingface.co/blog/feed.xml", weight: 0.8, ai: true}
+    - {name: NVIDIA Developer,  url: "https://developer.nvidia.com/blog/feed/", weight: 0.5, ai: false}
+    - {name: AWS Machine Learning, url: "https://aws.amazon.com/blogs/machine-learning/feed/", weight: 0.5, ai: true}
+    - {name: Cloudflare,        url: "https://blog.cloudflare.com/tag/ai/rss/", weight: 0.6, ai: true}
+    - {name: Simon Willison,    url: "https://simonwillison.net/atom/everything/", weight: 0.7, ai: false}
+    - {name: Latent Space,      url: "https://www.latent.space/feed", weight: 0.6, ai: false}
+    - {name: TechCrunch,        url: "https://techcrunch.com/category/artificial-intelligence/feed/", weight: 0.7, ai: true}
+    - {name: The Verge,         url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", weight: 0.6, ai: true}
+    - {name: VentureBeat,       url: "https://venturebeat.com/category/ai/feed/", weight: 0.5, ai: true}
+    - {name: MIT Technology Review, url: "https://www.technologyreview.com/topic/artificial-intelligence/feed", weight: 0.5, ai: true}
+
+# Tricks & Tips Thursday: where practical, snippet-sized ideas come from.
+tips:
+  max_age_hours: 336         # two weeks; good tips don't go stale overnight
+  require_ai: false          # git, shell, Python and editor tricks count too
+  hn:
+    min_points: 30
+    weight: 0.6
+    queries: ["TIL", tips, tricks, "cheat sheet", "how I use", workflow, "prompt engineering", "Claude Code", "local LLM", ollama, "AI coding"]
+  feeds:
+    - {name: Simon Willison TIL, url: "https://til.simonwillison.net/tils/feed.atom", weight: 1.0}
+    - {name: dev.to LLM,        url: "https://dev.to/feed/tag/llm", weight: 0.5}
+    - {name: dev.to AI,         url: "https://dev.to/feed/tag/ai", weight: 0.5}
+    - {name: dev.to Python,     url: "https://dev.to/feed/tag/python", weight: 0.4}
+    - {name: dev.to Git,        url: "https://dev.to/feed/tag/git", weight: 0.4}
+    - {name: Hugging Face,      url: "https://huggingface.co/blog/feed.xml", weight: 0.7}
+    - {name: NVIDIA Developer,  url: "https://developer.nvidia.com/blog/feed/", weight: 0.5}
+    - {name: Simon Willison,    url: "https://simonwillison.net/atom/everything/", weight: 0.7}

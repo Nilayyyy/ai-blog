@@ -1,0 +1,8 @@
+[
+  {"title": "ExampleLab launches Atlas, a code review agent that runs your tests first", "url": "https://examplelab.test/blog/atlas", "source": "ExampleLab", "weight": 1.0, "hours_ago": 6, "summary": "Atlas reads a whole repository, runs the tests, and comments on the diff."},
+  {"title": "ExampleLab launches Atlas code review agent for pull requests", "url": "https://news.example.test/atlas-agent?utm_source=feed", "source": "Example News", "weight": 0.7, "hours_ago": 5, "summary": "The agent verifies its own suggestions before posting them."},
+  {"title": "Show HN: Atlas, a code review agent that runs your tests first", "url": "https://examplelab.test/blog/atlas", "source": "Hacker News", "weight": 0.6, "hours_ago": 7, "points": 310, "origin": "hn"},
+  {"title": "Startup raises a large round to build something in AI", "url": "https://news.example.test/funding", "source": "Example News", "weight": 0.7, "hours_ago": 3, "summary": "Funding news with little technical detail."},
+  {"title": "Tiny open model runs on a phone", "url": "https://labs.example.test/tiny-model", "source": "Example Labs", "weight": 0.8, "hours_ago": 20, "summary": "An open-weights model small enough for phones."},
+  {"title": "A new repo for local agents gains stars quickly", "url": "https://github.com/example/local-agents", "source": "GitHub", "weight": 0.5, "hours_ago": 40, "points": 900, "origin": "github", "summary": "Run agents locally with a single binary."}
+]

@@ -1,4 +1,5 @@
-// Change these once you pick a name for the blog.
-export const SITE_TITLE = 'Dev Notes';
-export const SITE_DESCRIPTION = 'Notes on cloud, data pipelines and GenAI engineering.';
+// Change these whenever you like (the site name shows in the header, tab title and RSS feed).
+export const SITE_TITLE = 'AI Dev Radar';
+export const SITE_DESCRIPTION =
+  'What just happened in AI, told as Situation, Task, Action and Result. Tricks & Tips every Thursday.';
 export const AUTHOR = 'Nilay';

@@ -1,7 +1,9 @@
 ---
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import Reader from '../../components/Reader.astro';
 import { getPublishedPosts } from '../../lib/posts';
+import { formatDate, kindLabel } from '../../lib/format';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -10,11 +12,20 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+const label = kindLabel(post.data.kind);
 ---
 <Base title={post.data.title} description={post.data.description} canonical={post.data.canonical}>
-  <article>
-    <h1>{post.data.title}</h1>
-    <p class="muted">{post.data.pubDate.toISOString().slice(0, 10)}{post.data.tags.length ? ` · ${post.data.tags.join(', ')}` : ''}</p>
-    <Content />
+  <article class="post">
+    <header class="post-head">
+      {label && <span class={`chip chip-${post.data.kind}`}>{label}</span>}
+      <h1 id="post-title">{post.data.title}</h1>
+      <p class="tldr" id="post-tldr">{post.data.description}</p>
+      <div class="post-meta">
+        <time datetime={post.data.pubDate.toISOString().slice(0, 10)}>{formatDate(post.data.pubDate)}</time>
+        {post.data.tags.length > 0 && <span class="tags">{post.data.tags.join(', ')}</span>}
+        <Reader />
+      </div>
+    </header>
+    <div class="prose" id="prose"><Content /></div>
   </article>
 </Base>

@@ -2,16 +2,27 @@ name: Daily post draft
 
 on:
   schedule:
-    - cron: "30 2 * * *" # 08:00 IST every day
-  workflow_dispatch: # lets you run it manually from the Actions tab
+    - cron: "17 2 * * *" # 07:47 IST. GitHub often starts scheduled runs a little late.
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "auto = tips on Thursdays (IST), news otherwise"
+        type: choice
+        default: auto
+        options: [auto, news, tips]
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: daily-post
+  cancel-in-progress: false
+
 jobs:
   draft:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -23,25 +34,38 @@ jobs:
 
       - run: pip install -r scripts/requirements.txt
 
-      - name: Generate draft
-        id: gen
-        run: python scripts/generate.py
+      # So the generator never repeats a story that is already waiting in an open draft PR.
+      - name: List open draft PRs
         env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr list --state open --limit 50 --json title,body,headRefName > "$RUNNER_TEMP/open_prs.json" || echo '[]' > "$RUNNER_TEMP/open_prs.json"
+
+      - name: Find a story and write the draft
+        id: gen
+        run: python scripts/generate.py --mode "$MODE"
+        env:
+          MODE: ${{ inputs.mode || 'auto' }}
           PROVIDER: ${{ vars.PROVIDER || 'gemini' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GITHUB_TOKEN: ${{ github.token }}
+          OPEN_PRS_FILE: ${{ runner.temp }}/open_prs.json
+          PR_BODY_FILE: ${{ runner.temp }}/pr_body.md
 
-      - name: Open pull request
-        uses: peter-evans/create-pull-request@v7
+      - name: Open pull request (retries on GitHub errors)
+        if: steps.gen.outputs.path != ''
+        run: bash scripts/open_pr.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRAFT_TITLE: ${{ steps.gen.outputs.title }}
+          DRAFT_PATH: ${{ steps.gen.outputs.path }}
+          PR_BODY_FILE: ${{ runner.temp }}/pr_body.md
+
+      # If the PR still could not be opened, keep the draft so the work isn't lost.
+      - name: Save the draft as a download
+        if: failure() && steps.gen.outputs.path != ''
+        uses: actions/upload-artifact@v4
         with:
-          branch: draft/${{ github.run_id }}
-          title: "Draft: ${{ steps.gen.outputs.title }}"
-          commit-message: "Add draft: ${{ steps.gen.outputs.title }}"
-          body: |
-            New AI-generated draft. Before merging:
-            - [ ] Replace the `TODO(nilay)` line in "My take" with your own experience
-            - [ ] Check every `<!-- VERIFY: ... -->` note, then delete the marker
-            - [ ] Read it once for tone and accuracy
-
-            The post stays hidden from the site until both markers are gone.
-          delete-branch: true
+          name: draft
+          path: ${{ steps.gen.outputs.path }}

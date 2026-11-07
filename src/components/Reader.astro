@@ -1,0 +1,223 @@
+---
+// Read-aloud button. Uses the browser's built-in speech synthesis, so it is free and needs no server.
+// Hidden automatically in browsers that don't support it.
+---
+<div class="reader" id="reader" hidden>
+  <button type="button" id="reader-main" class="reader-btn" data-state="idle" aria-label="Listen to this post">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+      <path d="M3 10v4h4l5 4V6L7 10H3z" fill="currentColor" />
+      <path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      <path class="wave" d="M18.2 5.8a8.8 8.8 0 0 1 0 12.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    <span id="reader-label">Listen</span>
+  </button>
+  <button type="button" id="reader-stop" class="reader-aux" hidden aria-label="Stop reading">Stop</button>
+  <button type="button" id="reader-rate" class="reader-aux" hidden aria-label="Change reading speed">1&times;</button>
+</div>
+
+<script>
+  (function () {
+    const wrap = document.getElementById('reader');
+    const prose = document.getElementById('prose');
+    if (!wrap || !prose || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+
+    const synth = window.speechSynthesis;
+    const main = document.getElementById('reader-main');
+    const label = document.getElementById('reader-label');
+    const stopBtn = document.getElementById('reader-stop');
+    const rateBtn = document.getElementById('reader-rate');
+    if (!main || !label || !stopBtn || !rateBtn) return;
+    wrap.hidden = false;
+
+    const RATES = [1, 1.25, 1.5, 0.85];
+    const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let rateIdx = 0;
+    let state = 'idle'; // idle | playing | paused
+    let token = 0; // bumped on every restart so late callbacks from cancelled speech are ignored
+    let blocks = [];
+    let pos = { b: 0, c: 0 };
+    let voice = null;
+    let current = null;
+
+    function pickVoice() {
+      const vs = synth.getVoices() || [];
+      let best = null;
+      let bestScore = -1;
+      for (const v of vs) {
+        if (!v.lang || !/^en/i.test(v.lang)) continue;
+        let s = /en[-_]in/i.test(v.lang) ? 3 : /en[-_](gb|us)/i.test(v.lang) ? 2 : 1;
+        if (/natural|neural|google|premium|enhanced/i.test(v.name)) s += 2;
+        if (s > bestScore) {
+          best = v;
+          bestScore = s;
+        }
+      }
+      voice = best;
+    }
+    pickVoice();
+    synth.addEventListener && synth.addEventListener('voiceschanged', pickVoice);
+
+    const clean = (t) => t.replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
+
+    // Browsers stop long utterances part-way, so speak in sentence-sized chunks.
+    function chunk(text, max = 200) {
+      const sentences = text.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g) || [text];
+      const out = [];
+      let cur = '';
+      for (const raw of sentences) {
+        const s = raw.trim();
+        if (!s) continue;
+        if (s.length > max) {
+          if (cur) {
+            out.push(cur);
+            cur = '';
+          }
+          let rest = s;
+          while (rest.length > max) {
+            let cut = rest.lastIndexOf(', ', max);
+            if (cut < 60) cut = rest.lastIndexOf(' ', max);
+            if (cut < 1) cut = max;
+            out.push(rest.slice(0, cut + 1).trim());
+            rest = rest.slice(cut + 1).trim();
+          }
+          cur = rest;
+          continue;
+        }
+        if ((cur + ' ' + s).trim().length > max) {
+          out.push(cur);
+          cur = s;
+        } else {
+          cur = (cur + ' ' + s).trim();
+        }
+      }
+      if (cur) out.push(cur);
+      return out;
+    }
+
+    function collect() {
+      const list = [];
+      const add = (el, text) => {
+        const chunks = chunk(clean(text));
+        if (chunks.length) list.push({ el, chunks });
+      };
+      const title = document.getElementById('post-title');
+      if (title) add(title, title.textContent || '');
+      const tldr = document.getElementById('post-tldr');
+      if (tldr) add(tldr, tldr.textContent || '');
+      for (const el of Array.from(prose.children)) {
+        const tag = el.tagName;
+        if (tag === 'H2' && /^sources$/i.test((el.textContent || '').trim())) break; // don't read URLs aloud
+        if (tag === 'PRE' || tag === 'STYLE' || tag === 'SCRIPT') continue; // code reads badly
+        if (el.matches('figure.diagram')) {
+          add(el, el.getAttribute('data-speech') || '');
+          continue;
+        }
+        if (tag === 'UL' || tag === 'OL') {
+          el.querySelectorAll(':scope > li').forEach((li) => add(li, li.textContent || ''));
+          continue;
+        }
+        add(el, el.textContent || '');
+      }
+      return list;
+    }
+
+    function mark(el) {
+      if (current) current.classList.remove('reading');
+      current = el;
+      if (!el) return;
+      el.classList.add('reading');
+      const r = el.getBoundingClientRect();
+      if (r.top < 70 || r.bottom > window.innerHeight - 70) {
+        el.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+      }
+    }
+
+    function ui() {
+      main.dataset.state = state;
+      label.textContent = state === 'playing' ? 'Pause' : state === 'paused' ? 'Resume' : 'Listen';
+      main.setAttribute(
+        'aria-label',
+        state === 'playing' ? 'Pause reading' : state === 'paused' ? 'Resume reading' : 'Listen to this post'
+      );
+      stopBtn.hidden = state === 'idle';
+      rateBtn.hidden = state === 'idle';
+      rateBtn.textContent = RATES[rateIdx] + '×';
+    }
+
+    function finish() {
+      token++;
+      state = 'idle';
+      pos = { b: 0, c: 0 };
+      mark(null);
+      ui();
+    }
+
+    function speak() {
+      const b = blocks[pos.b];
+      if (!b) return finish();
+      mark(b.el);
+      const mine = ++token;
+      const u = new SpeechSynthesisUtterance(b.chunks[pos.c]);
+      u.rate = RATES[rateIdx];
+      if (voice) {
+        u.voice = voice;
+        u.lang = voice.lang;
+      } else {
+        u.lang = 'en-US';
+      }
+      const advance = () => {
+        if (mine !== token || state !== 'playing') return;
+        pos.c += 1;
+        if (pos.c >= b.chunks.length) {
+          pos.b += 1;
+          pos.c = 0;
+        }
+        speak();
+      };
+      u.onend = advance;
+      u.onerror = (e) => {
+        if (e && (e.error === 'canceled' || e.error === 'interrupted')) return;
+        advance();
+      };
+      synth.speak(u);
+    }
+
+    // cancel() followed straight away by speak() is dropped by some browsers, so leave a beat.
+    function restart() {
+      token++;
+      synth.cancel();
+      setTimeout(speak, 60);
+    }
+
+    main.addEventListener('click', () => {
+      if (state === 'idle') {
+        blocks = collect();
+        pos = { b: 0, c: 0 };
+        state = 'playing';
+        ui();
+        restart();
+      } else if (state === 'playing') {
+        state = 'paused';
+        token++;
+        synth.cancel();
+        ui();
+      } else {
+        state = 'playing';
+        ui();
+        restart();
+      }
+    });
+    stopBtn.addEventListener('click', () => {
+      token++;
+      synth.cancel();
+      finish();
+    });
+    rateBtn.addEventListener('click', () => {
+      rateIdx = (rateIdx + 1) % RATES.length;
+      ui();
+      if (state === 'playing') restart();
+    });
+    window.addEventListener('pagehide', () => synth.cancel());
+    ui();
+  })();
+</script>
