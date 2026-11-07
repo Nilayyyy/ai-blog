@@ -54,10 +54,6 @@ In tests using *Pokémon Red* as a long-horizon environment, researchers compare
 ## Result
 The shift in strategy is measurable. When playing *Pokémon Red*, the Claude Sonnet 3.7 model wrote 413 memory files across 225 folders and earned one badge. In contrast, Claude Fable 5 wrote only nine files and a single global reference document while earning four badges. On the CL-Bench 1.0 task, newer models like Opus 5.5 and Sonnet 5.5 successfully closed the learning loop by capturing validated rules to improve future accuracy. While these results demonstrate that agents can learn to manage their own knowledge, it remains unclear how to best balance the compute cost of "dreaming" against the gains in reasoning performance. Developers should look into implementing periodic background tasks that allow agents to summarize and prune their own persistent context directories.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [The components of agent memory](https://www.anthropic.com/research/components-of-agent-memory) (Anthropic Engineering)
