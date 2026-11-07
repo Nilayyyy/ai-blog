@@ -1,4 +1,5 @@
 ---
+import '../styles/global.css';
 import { SITE_TITLE } from '../config';
 
 interface Props {
@@ -20,31 +21,30 @@ const pageTitle = title === SITE_TITLE ? title : `${title} | ${SITE_TITLE}`;
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
-    <style>
-      :root { --bg: #fff; --fg: #1c1c1c; --muted: #666; --accent: #0b5fff; --code: #f3f3f3; }
-      @media (prefers-color-scheme: dark) {
-        :root { --bg: #111; --fg: #e8e8e8; --muted: #9a9a9a; --accent: #7aa7ff; --code: #1d1d1d; }
-      }
-      body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.65 system-ui, sans-serif; }
-      main, header, footer { max-width: 42rem; margin: 0 auto; padding: 1rem; }
-      header { display: flex; justify-content: space-between; align-items: baseline; }
-      a { color: var(--accent); }
-      header a.brand { color: var(--fg); font-weight: 700; text-decoration: none; }
-      .muted { color: var(--muted); font-size: 0.9rem; }
-      pre { background: var(--code); padding: 1rem; overflow-x: auto; border-radius: 6px; font-size: 0.85rem; }
-      code { background: var(--code); padding: 0.1em 0.3em; border-radius: 4px; }
-      pre code { background: none; padding: 0; }
-      ul.posts { list-style: none; padding: 0; }
-      ul.posts li { margin: 0 0 1.5rem; }
-      ul.posts a { font-size: 1.15rem; font-weight: 600; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <header>
-      <a class="brand" href="/">{SITE_TITLE}</a>
-      <a class="muted" href="/rss.xml">RSS</a>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <svg class="mark" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="2" opacity="0.6" />
+          <circle cx="16" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2" opacity="0.35" />
+          <circle cx="22.5" cy="10" r="3.2" fill="var(--accent)" />
+        </svg>
+        <span>{SITE_TITLE}</span>
+      </a>
+      <a class="rss" href="/rss.xml">RSS feed</a>
     </header>
-    <main><slot /></main>
-    <footer class="muted">&copy; {new Date().getFullYear()} {SITE_TITLE}</footer>
+    <main id="main"><slot /></main>
+    <footer class="site-footer">
+      <p>Drafted with AI from live sources, then read and edited by a human before it goes out.</p>
+    </footer>
   </body>
 </html>

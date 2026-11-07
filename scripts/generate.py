@@ -1,240 +1,182 @@
 #!/usr/bin/env python3
-"""Draft one blog post and save it as Markdown in src/content/posts.
+"""AI Dev Radar generator: find today's story, write a STAR post with a diagram, save it as Markdown.
 
-Provider is picked with the PROVIDER env var: gemini (default), claude, or mock.
-  gemini: needs GEMINI_API_KEY   (optional GEMINI_MODEL)
-  claude: needs ANTHROPIC_API_KEY (optional CLAUDE_MODEL)
-  mock:   no key, canned text, for testing the pipeline
+  python scripts/generate.py                  # auto: Thursday (IST) = tips, other days = news
+  python scripts/generate.py --mode news --dry-run
+  python scripts/generate.py --check-sources  # which feeds are reachable from this machine
 
-Usage: python scripts/generate.py [--dry-run]
+Environment: PROVIDER (gemini|claude|mock), GEMINI_API_KEY / ANTHROPIC_API_KEY, GITHUB_TOKEN (optional, for the
+GitHub search), OPEN_PRS_FILE (JSON from `gh pr list`, used to skip stories already in an open draft),
+PR_BODY_FILE (where to write the PR description), RADAR_OFFLINE=1 (use test fixtures, no network).
 """
+from __future__ import annotations
+
 import argparse
-import datetime as dt
+import json
 import os
-import pathlib
 import re
 import sys
-import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-import requests
 import yaml
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-TOPICS_FILE = ROOT / "scripts" / "topics.yaml"
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from radar import article, llm, rank, sources, writer  # noqa: E402
+
 POSTS_DIR = ROOT / "src" / "content" / "posts"
-PROVIDER = os.getenv("PROVIDER", "gemini").lower()
-
-SYSTEM = """You are drafting a technical blog post for a junior software developer who works on AI and cloud engineering.
-Voice: first person where natural, plain and direct, like a human first draft. Short and medium sentences, concrete examples.
-Avoid: hype, filler openers ("In today's fast-paced world"), buzzword stacking, listicle padding, emojis.
-Hard rules:
-- Never invent personal experiences, employers' internal details, benchmarks, statistics, quotes or version numbers.
-- Where you are not sure a technical claim is current or correct, add an HTML comment right after it: <!-- VERIFY: what to check -->
-- Only include code if you are confident it is correct and runnable.
-- Do not use an H1 heading. Start with an intro paragraph, then ## sections."""
+IST = timezone(timedelta(hours=5, minutes=30))  # India has no daylight saving
 
 
-# ---------- providers ----------
-
-def post_with_retry(url, headers, body, tries=4):
-    for i in range(tries):
-        r = requests.post(url, headers=headers, json=body, timeout=120)
-        if r.status_code < 400:
-            return r
-        if r.status_code in (429, 500, 502, 503, 529) and i < tries - 1:
-            time.sleep(5 * 2**i)
-            continue
-        raise RuntimeError(f"{PROVIDER} API error {r.status_code}: {r.text[:300]}")
+def resolve_mode(arg: str | None, now_utc: datetime) -> str:
+    mode = (arg or os.getenv("MODE") or "auto").lower()
+    if mode in ("news", "tips"):
+        return mode
+    return "tips" if now_utc.astimezone(IST).weekday() == 3 else "news"  # Thursday
 
 
-def call_gemini(prompt, system):
-    key = os.environ["GEMINI_API_KEY"]
-    model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    body = {
-        "systemInstruction": {"parts": [{"text": system}]},
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.8},
-    }
-    data = post_with_retry(url, {"x-goog-api-key": key}, body).json()
-    parts = data["candidates"][0]["content"]["parts"]
-    return "".join(p.get("text", "") for p in parts).strip()
+def load_seen(posts_dir: Path, open_prs_file: str | None):
+    """URLs and titles we must not write about again: published posts plus open draft PRs."""
+    urls, titles = set(), []
+    for f in sorted(posts_dir.glob("*.md")):
+        fm = writer.read_front_matter(f.read_text(encoding="utf-8"))
+        if fm.get("title"):
+            titles.append(str(fm["title"]))
+        for u in fm.get("sources") or []:
+            urls.add(rank.normalize_url(str(u)))
+    if open_prs_file and Path(open_prs_file).exists():
+        try:
+            prs = json.loads(Path(open_prs_file).read_text(encoding="utf-8") or "[]")
+        except json.JSONDecodeError:
+            prs = []
+        for pr in prs:
+            if str(pr.get("headRefName", "")).startswith("draft/"):
+                titles.append(re.sub(r"^Draft:\s*", "", str(pr.get("title", ""))))
+                for u in re.findall(r"https?://[^\s)>\]]+", str(pr.get("body", ""))):
+                    urls.add(rank.normalize_url(u))
+    return urls, titles
 
 
-def call_claude(prompt, system):
-    key = os.environ["ANTHROPIC_API_KEY"]
-    model = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
-    body = {
-        "model": model,
-        "max_tokens": 4096,
-        "system": system,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    headers = {"x-api-key": key, "anthropic-version": "2023-06-01"}
-    data = post_with_retry("https://api.anthropic.com/v1/messages", headers, body).json()
-    return "".join(b.get("text", "") for b in data["content"]).strip()
-
-
-def call_mock(prompt, stage):
-    if stage == "outline":
-        return "DESCRIPTION: A mock description for pipeline testing.\nTAGS: test, mock\n- Intro\n- Main idea\n- Pitfalls"
-    if stage == "topics":
-        return "Mock topic one | A mock angle\nMock topic two | Another mock angle"
-    return ("This is a mock intro paragraph used to test the pipeline.\n\n"
-            "## Main idea\n\nSome mock body text. <!-- VERIFY: this is mock content -->\n\n"
-            "## Pitfalls\n\nMore mock text.")
-
-
-def generate(prompt, stage):
-    if PROVIDER == "mock":
-        return call_mock(prompt, stage)
-    if PROVIDER == "gemini":
-        return call_gemini(prompt, SYSTEM)
-    if PROVIDER == "claude":
-        return call_claude(prompt, SYSTEM)
-    sys.exit(f"Unknown PROVIDER '{PROVIDER}' (use gemini, claude or mock)")
-
-
-# ---------- topic queue ----------
-
-def load_topics():
-    return yaml.safe_load(TOPICS_FILE.read_text(encoding="utf-8"))
-
-
-def save_topics(data):
-    TOPICS_FILE.write_text(
-        yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
-    )
-
-
-def existing_titles():
-    titles = []
-    for f in POSTS_DIR.glob("*.md"):
-        m = re.search(r'^title:\s*"?(.*?)"?\s*$', f.read_text(encoding="utf-8"), re.M)
-        if m:
-            titles.append(m.group(1))
-    return titles
-
-
-def refill_topics(data):
-    prompt = (
-        "Suggest 8 new blog post topics, one per line, formatted as: Title | one-sentence angle.\n"
-        "Themes: " + "; ".join(data["themes"]) + "\n"
-        "Already covered or queued (do not repeat): "
-        + "; ".join(existing_titles() + [t["title"] for t in data["topics"]])
-        + "\nPrefer explanatory topics that do not need first-hand benchmarks. Output only the lines."
-    )
-    for line in generate(prompt, "topics").splitlines():
-        if "|" in line:
-            title, angle = (s.strip(" -*\t\"") for s in line.split("|", 1))
-            if title:
-                data["topics"].append({"title": title, "angle": angle, "status": "pending"})
-
-
-def next_topic(data):
-    for t in data["topics"]:
-        if t.get("status") == "pending":
-            return t
-    refill_topics(data)
-    for t in data["topics"]:
-        if t.get("status") == "pending":
-            return t
-    sys.exit("No pending topics and refill produced none.")
-
-
-# ---------- writing ----------
-
-def parse_outline(text):
-    desc = re.search(r"^DESCRIPTION:\s*(.+)$", text, re.M)
-    tags = re.search(r"^TAGS:\s*(.+)$", text, re.M)
-    outline = "\n".join(l for l in text.splitlines() if not re.match(r"^(DESCRIPTION|TAGS):", l)).strip()
-    tag_list = [t.strip().lower() for t in tags.group(1).split(",")][:5] if tags else []
-    return (desc.group(1).strip() if desc else ""), tag_list, outline
-
-
-def strip_fences(text):
-    text = text.strip()
-    m = re.match(r"^```(?:markdown|md)?\n(.*)\n```$", text, re.S)
-    return m.group(1).strip() if m else text
-
-
-def slugify(s):
-    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:70]
-
-
-def yaml_str(s):
-    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
-def write_post(topic):
-    title, angle = topic["title"], topic.get("angle", "")
-
-    outline_prompt = (
-        f"Plan a blog post titled: {title}\nAngle: {angle}\n"
-        "Reply in exactly this format:\n"
-        "DESCRIPTION: one sentence (max 160 chars) for search results\n"
-        "TAGS: three to five lowercase tags, comma separated\n"
-        "then a bullet outline of 4-6 sections."
-    )
-    description, tags, outline = parse_outline(generate(outline_prompt, "outline"))
-
-    draft_prompt = (
-        f"Write the full post (800-1200 words) in Markdown.\nTitle: {title}\nAngle: {angle}\nOutline:\n{outline}\n"
-        "Do not include a section about the author's personal take; that is added separately. Output only the post body."
-    )
-    draft = strip_fences(generate(draft_prompt, "draft"))
-
-    edit_prompt = (
-        "Edit this draft. Cut filler and repetition, fix anything technically doubtful or mark it with "
-        "<!-- VERIFY: ... --> (keep existing VERIFY markers), make the tone plain and human, keep it under 1200 words. "
-        "Return only the final Markdown body.\n\n" + draft
-    )
-    body = strip_fences(generate(edit_prompt, "edit"))
-
-    body += (
-        "\n\n## My take\n\n"
-        "TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.\n"
-    )
-
-    today = dt.date.today().isoformat()
-    front = (
-        "---\n"
-        f"title: {yaml_str(title)}\n"
-        f"description: {yaml_str(description or title)}\n"
-        f"pubDate: {today}\n"
-        f"tags: [{', '.join(tags)}]\n"
-        "canonical:\n"
-        "---\n\n"
-    )
-    path = POSTS_DIR / f"{today}-{slugify(title)}.md"
-    return path, front + body + "\n"
-
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--dry-run", action="store_true", help="print the post, don't write files")
-    args = ap.parse_args()
-
-    POSTS_DIR.mkdir(parents=True, exist_ok=True)
-    data = load_topics()
-    topic = next_topic(data)
-    path, content = write_post(topic)
-
-    if args.dry_run:
-        print(f"[dry-run] would write {path.relative_to(ROOT)}\n")
-        print(content)
-        return
-
-    path.write_text(content, encoding="utf-8")
-    topic["status"] = "done"
-    save_topics(data)
-    print(f"Wrote {path.relative_to(ROOT)}")
-
+def write_outputs(**kv):
     out = os.getenv("GITHUB_OUTPUT")
     if out:
         with open(out, "a", encoding="utf-8") as fh:
-            fh.write(f"title={topic['title']}\npath={path.relative_to(ROOT)}\n")
+            for k, v in kv.items():
+                fh.write(f"{k}={v}\n")
+
+
+def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):  # Windows consoles default to a legacy encoding
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--mode", choices=["auto", "news", "tips"], default=None)
+    ap.add_argument("--dry-run", action="store_true", help="print the post, write nothing")
+    ap.add_argument("--check-sources", action="store_true", help="test every source and exit")
+    ap.add_argument("--offline", action="store_true", help="use bundled test fixtures instead of the network")
+    args = ap.parse_args()
+
+    now = datetime.now(timezone.utc)
+    cfg = yaml.safe_load((ROOT / "scripts" / "radar.yaml").read_text(encoding="utf-8"))
+    offline = args.offline or os.getenv("RADAR_OFFLINE") == "1"
+    if offline:
+        os.environ["RADAR_OFFLINE"] = "1"
+
+    if args.check_sources:
+        for name in ("news", "tips"):
+            sec = cfg[name]
+            _, report = sources.gather(sec, now, sec["max_age_hours"])
+            print(f"\n[{name}]\n{sources.format_report(report)}")
+        return 0
+
+    mode = resolve_mode(args.mode, now)
+    section = cfg[mode]
+    fixture = ROOT / "scripts" / "tests" / "fixtures" / f"candidates_{mode}.json" if offline else None
+    print(f"Mode: {mode} ({now.astimezone(IST):%A %d %b %Y}, IST)")
+
+    seen_urls, seen_titles = load_seen(POSTS_DIR, os.getenv("OPEN_PRS_FILE"))
+    recent = seen_titles[-8:]
+
+    hours = section["max_age_hours"]
+    stories = []
+    for window in (hours, 168 if mode == "news" else 720):
+        items, report = sources.gather(section, now, window, fixture)
+        print(sources.format_report(report))
+        if not any(r[1] for r in report):
+            # Silence would look like a quiet news day; a red run tells you something is wrong.
+            print("Every source failed, so nothing could be checked. Check the network or run --check-sources.", file=sys.stderr)
+            write_outputs(skipped="true", path="")
+            return 1
+        stories = rank.rank_stories(items, now, window, cfg.get("keywords", {}), seen_urls, seen_titles)[:40]
+        print(f"{len(items)} fresh items in the last {window}h, {len(stories)} distinct unseen stories")
+        if stories:
+            break
+        print("Nothing new enough; widening the window.")
+    if not stories:
+        print("No new stories found. Skipping today rather than repeating something.")
+        write_outputs(skipped="true", path="")
+        return 0
+
+    picks = writer.select(mode, stories, recent, now)
+
+    if mode == "news":
+        chosen = None
+        for story, angle in picks:
+            srcs = article.collect_sources(story, want=2, per_chars=6500)
+            if srcs:
+                chosen = (story.rep.title, angle, srcs)
+                break
+        if not chosen:
+            print("Could not read the article text for any pick. Nothing written.", file=sys.stderr)
+            write_outputs(skipped="true", path="")
+            return 1
+        headline, angle, srcs = chosen
+    else:
+        srcs, angles = [], []
+        for story, angle in picks:
+            got = article.collect_sources(story, want=1, per_chars=4000)
+            if got:
+                srcs += got
+                angles.append(angle)
+        if not srcs:
+            print("Could not read any tip sources. Nothing written.", file=sys.stderr)
+            write_outputs(skipped="true", path="")
+            return 1
+        headline, angle = "practical tricks for developers and AI engineers", " ".join(a for a in angles if a)
+
+    today_iso = now.astimezone(IST).strftime("%Y-%m-%d")
+    print(f"Writing from {len(srcs)} source(s): {', '.join(s['publisher'] for s in srcs)}")
+    post = writer.write_post(mode, headline, angle, srcs, recent, today_iso)
+    diagram = writer.make_diagram(mode, post)
+    title, content = writer.finalize(post, mode, today_iso=today_iso, srcs=srcs, diagram=diagram)
+
+    path = POSTS_DIR / f"{today_iso}-{writer.slugify(title)}.md"
+    n = 2
+    while path.exists() and not args.dry_run:
+        path = POSTS_DIR / f"{today_iso}-{writer.slugify(title)}-{n}.md"
+        n += 1
+
+    if args.dry_run:
+        print(f"\n[dry-run] would write {path.relative_to(ROOT)}\n")
+        print(content)
+        return 0
+
+    POSTS_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    body_file = Path(os.getenv("PR_BODY_FILE") or ROOT / ".draft" / "pr_body.md")
+    body_file.parent.mkdir(parents=True, exist_ok=True)
+    body_file.write_text(writer.pr_body(mode, srcs), encoding="utf-8")
+    print(f"Wrote {path.relative_to(ROOT)}")
+    write_outputs(title=title, path=path.relative_to(ROOT).as_posix(), mode=mode, skipped="false")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except llm.LLMError as e:
+        print(f"Model error: {e}", file=sys.stderr)
+        sys.exit(2)

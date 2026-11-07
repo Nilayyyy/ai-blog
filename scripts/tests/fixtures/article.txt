@@ -1,0 +1,11 @@
+ExampleLab today introduced Atlas, an agent for reviewing pull requests. Most automated reviewers read only the diff. Atlas first indexes the whole repository, so it can see which functions call the changed code, which tests cover it, and which conventions the project follows.
+
+Before posting any comment, Atlas runs the project's existing test suite against the proposed change. When it wants to suggest a fix, it applies that fix in a sandbox and runs the tests again. Only suggestions that still pass are posted to the pull request.
+
+The company says early users saw fewer review round trips, and that the median review took 12 minutes in its internal trial of 40 repositories. These figures come from ExampleLab's own testing and have not been independently reproduced.
+
+Atlas supports Python, TypeScript and Go at launch. It runs inside the customer's own CI, so source code does not leave the build environment. Pricing has not been announced. ExampleLab says support for very large monorepos is still in progress.
+
+The team described the design goal plainly: a reviewer that is quiet unless it is fairly sure, because developers stop reading comments from tools that are wrong too often. In the trial, suggestions that failed the sandbox check were discarded rather than shown to a human.
+
+Atlas is available in preview today for teams that join the waitlist, with general availability planned for later this year.
