@@ -57,10 +57,6 @@ This tool enables developers to automate repetitive scripting tasks and query ga
 
 No specific benchmarks or performance metrics are provided by the project creators, so the impact on development velocity remains anecdotal. It is also unclear how the server handles highly complex scenes with thousands of objects regarding latency or token window limits. If you are building in Roblox, try setting the port and enabling safe mode to see if the AI can correctly map your current object hierarchy.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [GitHub - HerdBuilderEstimate/roblox-studio-mcp: Model Context Protocol server for Roblox S](https://github.com/HerdBuilderEstimate/roblox-studio-mcp) (GitHub)
