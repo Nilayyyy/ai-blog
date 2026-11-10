@@ -61,10 +61,6 @@ The models implement "Enterprise Frontier Safeguards," allowing for zero data re
 ## Result
 Anthropic reports that Fable 5.2 achieves performance on the FrontierCode 2.0 evaluation comparable to Claude Opus 5.5 at "Max effort," but at approximately half the cost per task. In internal benchmarks, Mythos 5.2 showed a 10.2% increase in vulnerability detection compared to Claude Opus 5.5. The company claims these models generate outputs up to 30% faster than the 5.1 series. While Anthropic states that high-stakes risks remain low, they provide a full system card for detailed safety analysis. Developers can begin testing these models in the Amazon Bedrock playground or via the Anthropic SDK. If you are managing long-running agent workflows, evaluate whether Fable 5.2’s self-verification capabilities reduce your current manual debug cycles.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [Introducing Claude Fable 5.2 and Claude Mythos 5.2](https://www.anthropic.com/claude-fable-and-mythos-5-2) (Anthropic)
