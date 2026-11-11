@@ -26,13 +26,25 @@ Thursday (IST) switches to tips mode: 4 to 6 niche tricks from fresh developer s
 2. Delete `scripts/topics.yaml` and, if present, `body.json` (no longer used).
 3. `npm install` (adds `@astrojs/markdown-remark`; `package-lock.json` is included so the Cloudflare build stays in sync).
 4. `pip install -r scripts/requirements.txt` in your venv (adds `feedparser` and `trafilatura`).
-5. Commit and push. No new secrets are needed. `GEMINI_API_KEY` and the "allow Actions to create pull requests" setting stay as they are.
+5. Commit and push. Add secret `CLAUDE_CODE_OAUTH_TOKEN` (see "Which model writes the posts"). `GEMINI_API_KEY` and the "allow Actions to create pull requests" setting stay as they are.
 6. First run: Actions tab, "Daily post draft", Run workflow, mode `news`. Open the log and look at the line `Sources: X/Y reachable`.
+
+## Which model writes the posts
+
+Claude writes the posts through **Claude Code on your Claude subscription** (Pro or Max), so there is no separate API bill. Gemini is the automatic backup: if the Claude token is missing, or your subscription limit is used up that morning, the run switches to Gemini and the PR says so under "Written by".
+
+Setup, once:
+
+1. Run `claude setup-token` in a terminal (install the CLI first with `npm install -g @anthropic-ai/claude-code`). It opens a browser login and prints a token valid for about a year.
+2. Repo Settings > Secrets and variables > Actions > New repository secret: name `CLAUDE_CODE_OAUTH_TOKEN`, paste the token.
+3. Actions tab > "Daily post draft" > Run workflow, tick **"Only test the model login"**. The log should end with `Answered by Claude Code (sonnet): OK`.
+
+Good to know: the daily run draws on the same usage limit as your own Claude chats (a post is a handful of calls). The token is tied to your personal account; never commit it. When it expires, repeat steps 1-2.
 
 ## First-time setup
 
 1. Push this folder to a GitHub repo.
-2. Repo Settings > Secrets and variables > Actions: add secret `GEMINI_API_KEY`.
+2. Repo Settings > Secrets and variables > Actions: add secret `CLAUDE_CODE_OAUTH_TOKEN` (see above) and `GEMINI_API_KEY` (the backup).
 3. Settings > Actions > General > Workflow permissions: tick "Allow GitHub Actions to create and approve pull requests".
 4. Deploy on Cloudflare (Workers & Pages, connect the repo). Build command `npm run build`, deploy command `npx wrangler deploy`. Variables: `NODE_VERSION=22`, `SITE_URL=<your address>`. `wrangler.jsonc` is included.
 
@@ -47,19 +59,19 @@ python scripts\generate.py --check-sources          # which sources work from he
 $env:PROVIDER = "mock"; $env:RADAR_OFFLINE = "1"
 python scripts\generate.py --mode news --dry-run     # full pipeline on test data, no key, no network
 
-$env:RADAR_OFFLINE = ""; $env:PROVIDER = "gemini"
-$env:GEMINI_API_KEY = "..."
+$env:RADAR_OFFLINE = ""; $env:PROVIDER = ""          # default chain: Claude Code, then Gemini
+python scripts\generate.py --check-model             # one tiny call: which model answers?
 python scripts\generate.py --mode news --dry-run     # real run, prints the post, writes nothing
 python scripts\generate.py --mode tips               # writes the file into src\content\posts
 
-python -m unittest discover -s scripts\tests         # 22 tests
+python -m unittest discover -s scripts\tests         # 27 tests
 npm install; npm run dev                             # preview the site
 ```
 
 ## Tuning
 
 - **Sources, keywords, freshness window:** `scripts/radar.yaml`. A source that fails is skipped. If every source fails, the run fails loudly instead of quietly skipping.
-- **Model:** Gemini by default (`gemini-3.1-flash-lite`, then automatic fallbacks if it is busy). Set a repo variable `GEMINI_MODEL` to change it. To use Claude, add secret `ANTHROPIC_API_KEY` and repo variable `PROVIDER` = `claude`.
+- **Model:** repo variable `PROVIDER` is the chain to try, default `claude-code,gemini`. Other options: `claude-api` (separately billed API key in secret `ANTHROPIC_API_KEY`), `gemini` alone. `CLAUDE_CODE_MODEL` picks the Claude model (default `sonnet`; `opus` writes better but uses your limit faster), `CLAUDE_CODE_EFFORT` sets thinking effort (`low` to `max`), `GEMINI_MODEL` the Gemini one.
 - **Schedule:** the cron line in `.github/workflows/daily-post.yml`. GitHub can start scheduled runs 15 to 60 minutes late.
 - **Site name and tagline:** `src/config.ts`.
 
