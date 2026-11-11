@@ -55,10 +55,6 @@ Meta positions this as a cost-efficient alternative to existing lightweight mode
 ## Result
 Meta claims that according to Artificial Analysis’s composite benchmark, Ember is cheaper and more accurate than Haiku and Luna. At 10 cents per million input tokens, it enters a competitive price bracket for high-volume execution. It remains to be seen how Ember performs in production environments compared to its open-source peers when faced with domain-specific edge cases. If you are currently paying for frontier models to handle simple routing or extraction tasks, consider benchmarking your current pipeline against Ember to see if you can reduce your token spend.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [Meta releases Muse Ember, a new lightweight model for agent execution | TechCrunch](https://techcrunch.com/2026/11/09/meta-releases-muse-ember-a-new-lightweight-model-for-agent-execution/) (TechCrunch)
