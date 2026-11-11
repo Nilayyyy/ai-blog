@@ -54,10 +54,6 @@ The system uses Gemini Carbon as the underlying engine to handle the complexity 
 ## Result
 The process reduced the verification timeline from years to just four weeks. According to the company, this marks the first time a widely deployed cryptographic protocol has been formally verified at the implementation level. While this demonstrates that AI can handle complex, deep-level verification, scaling these techniques to other systems like medical device firmware or power grid software remains an ongoing research challenge. Google DeepMind has open-sourced their formal verification artifacts. Developers interested in high-assurance systems should review the technical paper and the provided artifacts to see how Lean can be integrated into their own security audits.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [Formal Verification of Signal’s Protocol with Gemini](https://deepmind.google/blog/introducing-alphaproof-code/) (Google DeepMind)
