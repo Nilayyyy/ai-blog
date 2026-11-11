@@ -10,6 +10,10 @@ on:
         type: choice
         default: auto
         options: [auto, news, tips]
+      check_model:
+        description: "Only test the model login (one tiny call), write nothing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -34,6 +38,15 @@ jobs:
 
       - run: pip install -r scripts/requirements.txt
 
+      # Claude Code writes the post on your Claude subscription (secret CLAUDE_CODE_OAUTH_TOKEN, from `claude setup-token`).
+      # If it is missing or the subscription limit is used up, the generator falls back to Gemini on its own.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code && claude --version
+
       # So the generator never repeats a story that is already waiting in an open draft PR.
       - name: List open draft PRs
         env:
@@ -42,10 +55,19 @@ jobs:
 
       - name: Find a story and write the draft
         id: gen
-        run: python scripts/generate.py --mode "$MODE"
+        run: |
+          if [ "$CHECK_MODEL" = "true" ]; then
+            python scripts/generate.py --check-model
+          else
+            python scripts/generate.py --mode "$MODE"
+          fi
         env:
           MODE: ${{ inputs.mode || 'auto' }}
-          PROVIDER: ${{ vars.PROVIDER || 'gemini' }}
+          CHECK_MODEL: ${{ inputs.check_model || false }}
+          PROVIDER: ${{ vars.PROVIDER || 'claude-code,gemini' }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_MODEL: ${{ vars.CLAUDE_CODE_MODEL }}
+          CLAUDE_CODE_EFFORT: ${{ vars.CLAUDE_CODE_EFFORT }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}

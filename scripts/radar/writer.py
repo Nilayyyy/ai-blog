@@ -400,10 +400,14 @@ def finalize(post, mode, *, today_iso, srcs, diagram) -> tuple[str, str]:
     return title, front + content
 
 
-def pr_body(mode, srcs) -> str:
+def pr_body(mode, srcs, model: str = "") -> str:
     lines = [
         "New AI-generated draft for AI Dev Radar" + (" (Tricks & Tips Thursday)." if mode == "tips" else "."),
         "",
+    ]
+    if model:
+        lines += [f"Written by: {model}", ""]
+    lines += [
         "Before merging:",
         "- [ ] Replace the `TODO(nilay)` line under \"My take\" with your own words",
         "- [ ] Check every `<!-- VERIFY: ... -->` note (unsourced figures, shaky claims), fix the text, delete the note",

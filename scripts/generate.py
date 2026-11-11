@@ -4,8 +4,10 @@
   python scripts/generate.py                  # auto: Thursday (IST) = tips, other days = news
   python scripts/generate.py --mode news --dry-run
   python scripts/generate.py --check-sources  # which feeds are reachable from this machine
+  python scripts/generate.py --check-model    # one tiny call through the model chain, to test the login/token
 
-Environment: PROVIDER (gemini|claude|mock), GEMINI_API_KEY / ANTHROPIC_API_KEY, GITHUB_TOKEN (optional, for the
+Environment: PROVIDER (comma-separated chain, default "claude-code,gemini"; also claude-api, mock; see
+radar/llm.py), CLAUDE_CODE_OAUTH_TOKEN / GEMINI_API_KEY / ANTHROPIC_API_KEY, GITHUB_TOKEN (optional, for the
 GitHub search), OPEN_PRS_FILE (JSON from `gh pr list`, used to skip stories already in an open draft),
 PR_BODY_FILE (where to write the PR description), RADAR_OFFLINE=1 (use test fixtures, no network).
 """
@@ -76,8 +78,15 @@ def main() -> int:
     ap.add_argument("--mode", choices=["auto", "news", "tips"], default=None)
     ap.add_argument("--dry-run", action="store_true", help="print the post, write nothing")
     ap.add_argument("--check-sources", action="store_true", help="test every source and exit")
+    ap.add_argument("--check-model", action="store_true", help="make one tiny model call through the provider chain and exit")
     ap.add_argument("--offline", action="store_true", help="use bundled test fixtures instead of the network")
     args = ap.parse_args()
+
+    if args.check_model:
+        print(f"Provider chain: {' -> '.join(llm.providers())}")
+        reply = llm.complete("You are a health check.", "Reply with the single word OK.", stage="check", temperature=0)
+        print(f"Answered by {llm.used_summary()}: {reply[:80]}")
+        return 0
 
     now = datetime.now(timezone.utc)
     cfg = yaml.safe_load((ROOT / "scripts" / "radar.yaml").read_text(encoding="utf-8"))
@@ -168,8 +177,8 @@ def main() -> int:
     path.write_text(content, encoding="utf-8")
     body_file = Path(os.getenv("PR_BODY_FILE") or ROOT / ".draft" / "pr_body.md")
     body_file.parent.mkdir(parents=True, exist_ok=True)
-    body_file.write_text(writer.pr_body(mode, srcs), encoding="utf-8")
-    print(f"Wrote {path.relative_to(ROOT)}")
+    body_file.write_text(writer.pr_body(mode, srcs, model=llm.used_summary()), encoding="utf-8")
+    print(f"Wrote {path.relative_to(ROOT)} (model: {llm.used_summary()})")
     write_outputs(title=title, path=path.relative_to(ROOT).as_posix(), mode=mode, skipped="false")
     return 0
 

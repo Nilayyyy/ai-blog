@@ -223,6 +223,81 @@ class AllSourcesDown(unittest.TestCase):
             self.assertEqual(generate.main(), 0)
 
 
+class ProviderChain(unittest.TestCase):
+    """The Claude Code provider and the fallback chain, with the CLI faked out."""
+
+    def setUp(self):
+        from unittest import mock
+        llm.reset()
+        self.env = mock.patch.dict(os.environ, {
+            "CLAUDE_CODE_BIN": "claude-fake", "RETRY_BASE_SECONDS": "0", "CALL_GAP_SECONDS": "0",
+        })
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.addCleanup(llm.reset)
+
+    def fake_run(self, payload, returncode=0):
+        calls = []
+
+        def run(cmd, **kw):
+            calls.append((cmd, kw))
+            out = payload if isinstance(payload, str) else json.dumps(payload)
+            return subprocess.CompletedProcess(cmd, returncode, stdout=out, stderr="")
+        return run, calls
+
+    def test_provider_parsing(self):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"PROVIDER": "Claude-Code, claude ,gemini,gemini"}):
+            self.assertEqual(llm.providers(), ["claude-code", "claude-api", "gemini"])
+        with mock.patch.dict(os.environ, {"PROVIDER": ""}):
+            self.assertEqual(llm.providers(), ["claude-code", "gemini"])
+        with mock.patch.dict(os.environ, {"PROVIDER": "gpt"}):
+            with self.assertRaises(llm.LLMError):
+                llm.providers()
+
+    def test_claude_code_call_shape(self):
+        from unittest import mock
+        run, calls = self.fake_run({"type": "result", "subtype": "success", "is_error": False, "result": " Hello ",
+                                    "usage": {"input_tokens": 10, "output_tokens": 2}})
+        with mock.patch.dict(os.environ, {"PROVIDER": "claude-code", "CLAUDE_CODE_OAUTH_TOKEN": "tok",
+                                          "ANTHROPIC_API_KEY": "sk-should-not-leak"}), \
+             mock.patch.object(llm.subprocess, "run", run):
+            self.assertEqual(llm.complete("sys", "the long prompt", stage="write:news"), "Hello")
+        cmd, kw = calls[0]
+        self.assertEqual(cmd[:2], ["claude-fake", "-p"])
+        self.assertIn("--system-prompt-file", cmd)
+        self.assertEqual(cmd[cmd.index("--tools") + 1], "")          # no tools at all
+        self.assertEqual(cmd[cmd.index("--model") + 1], "sonnet")
+        self.assertEqual(kw["input"], "the long prompt")            # prompt on stdin, not argv
+        self.assertNotIn("ANTHROPIC_API_KEY", kw["env"])             # subscription, not API billing
+        self.assertEqual(llm.used_summary(), "Claude Code (sonnet)")
+
+    def test_usage_limit_falls_back_once_and_stays_down(self):
+        from unittest import mock
+        run, calls = self.fake_run({"type": "result", "subtype": "success", "is_error": True,
+                                    "result": "Claude usage limit reached. Your limit will reset at 5pm"})
+        with mock.patch.dict(os.environ, {"PROVIDER": "claude-code,mock"}), \
+             mock.patch.object(llm.subprocess, "run", run):
+            first = llm.complete("s", "p", stage="write:news")
+            llm.complete_json("s", "p", stage="diagram:news")
+        self.assertIn("TITLE:", first)
+        self.assertEqual(len(calls), 1)   # no retry on a limit, and skipped for later stages
+        self.assertEqual(llm.used_summary(), "mock")
+
+    def test_garbage_output_is_an_error(self):
+        from unittest import mock
+        run, _ = self.fake_run("not json", returncode=1)
+        with mock.patch.dict(os.environ, {"PROVIDER": "claude-code"}), \
+             mock.patch.object(llm.subprocess, "run", run):
+            with self.assertRaises(llm.LLMError):
+                llm.complete("s", "p", stage="select:news")
+
+    def test_pr_body_names_the_model(self):
+        body = writer.pr_body("news", [{"url": "https://x.test/a"}], model="Claude Code (sonnet)")
+        self.assertIn("Written by: Claude Code (sonnet)", body)
+        self.assertIn("https://x.test/a", body)
+
+
 class EndToEndOffline(unittest.TestCase):
     def run_gen(self, mode):
         env = dict(os.environ, PROVIDER="mock", RADAR_OFFLINE="1", RETRY_BASE_SECONDS="0", CALL_GAP_SECONDS="0")
