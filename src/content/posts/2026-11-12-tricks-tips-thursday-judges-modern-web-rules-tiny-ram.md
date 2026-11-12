@@ -75,7 +75,7 @@ Via dev.to: before the model, write the Friday-afternoon keyword filter and scor
 WORDS = ["internal", "floor", "approve", "free"]
 PCT = re.compile(r"(\d{1,3})\s?%")
 ```
-<!-- VERIFY: run this snippet and confirm it works -->
+
 
 Why it works: it gives you a bar the model has to clear, and it tells you whether the model is worth its cost.
 
@@ -104,7 +104,7 @@ Why it works: the guides are short, curated and token-efficient, according to th
 
 ### Mix quantization formats by layer for local MoE models
 
-Via Hacker News: the llama-modchip project says it runs a 284B DeepSeek model in under 59 GiB of RAM on CPU, with no GPU. Its trick is to keep sensitive layers (down projections, attention) at a higher bit width and compress the interior expert projections harder. The project claims this cuts that part's footprint by 33.3% against Q4_0. <!-- VERIFY: figure 59 not found in the source text -->
+Via Hacker News: the llama-modchip project says it runs a 284B DeepSeek model in under 59 GiB of RAM on CPU, with no GPU. Its trick is to keep sensitive layers (down projections, attention) at a higher bit width and compress the interior expert projections harder. The project claims this cuts that part's footprint by 33.3% against Q4_0.
 
 Why it works: CPU inference on MoE models is bound by memory bandwidth per token, so fewer bits per weight means fewer bytes to move. These are the project's own numbers, so benchmark on your own hardware before relying on them.
 ## Result
