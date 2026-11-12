@@ -58,7 +58,6 @@ Via dev.to: label every test item when you write it, not afterwards. Each email 
 {"id": "D16", "verdict": "stop", "rule": "concession",
  "shape": "amount", "markers": ["1.200 kr."]}
 ```
-<!-- VERIFY: run this snippet and confirm it works -->
 
 Why it works: if you label after seeing the judge's answers, you grade the judge against itself. Planted markers also let you check a rewritten email with a plain string search, no model needed.
 
@@ -89,7 +88,6 @@ Via dev.to: give the judge the policy in the system prompt and one item as the u
 "regler": {"type": "array", "items": {"type": "integer"}},
 "citat": {"type": "string"},
 ```
-<!-- VERIFY: run this snippet and confirm it works -->
 
 Why it works: a constrained answer is easy to parse, and anything malformed can be treated as "stop". That is what fail-closed means. Requiring a citation also gives you something to check against the original text.
 
@@ -101,7 +99,6 @@ Via Hacker News: Google Chrome's Modern Web Guidance project says agents default
 npx modern-web-guidance@latest legacy-scan .
 npx modern-web-guidance@latest search "animate a dialog modal backdrop"
 ```
-<!-- VERIFY: run this snippet and confirm it works -->
 
 Why it works: the guides are short, curated and token-efficient, according to the project, so the agent gets current patterns without a long prompt of your own.
 
@@ -109,8 +106,7 @@ Why it works: the guides are short, curated and token-efficient, according to th
 
 Via Hacker News: the llama-modchip project says it runs a 284B DeepSeek model in under 59 GiB of RAM on CPU, with no GPU. Its trick is to keep sensitive layers (down projections, attention) at a higher bit width and compress the interior expert projections harder. The project claims this cuts that part's footprint by 33.3% against Q4_0. <!-- VERIFY: figure 59 not found in the source text -->
 
-Why it works: CPU inference on MoE models is bound by memory bandwidth per token, so fewer bits per weight means fewer bytes to move. These are the project's own numbers, so benchmark on your own hardware before relying on them. <!-- VERIFY: project is a fork with custom quantization types; confirm it builds and the figures reproduce -->
-
+Why it works: CPU inference on MoE models is bound by memory bandwidth per token, so fewer bits per weight means fewer bytes to move. These are the project's own numbers, so benchmark on your own hardware before relying on them.
 ## Result
 
 Your guardrail now has a score instead of a vibe, and it has to beat a keyword filter to earn its place. Your agent gets a scan and a rules source rather than a hope. Your RAM budget gets a new set of options to try.
@@ -119,9 +115,6 @@ Your guardrail now has a score instead of a vibe, and it has to beat a keyword f
 - Force a structured, citation-backed answer and fail closed on anything else.
 - Scan for legacy web patterns, and give each model layer only as many bits as it needs.
 
-## My take
-
-TODO(nilay): add your own favourite trick, or a gotcha you hit while trying these, then delete this line.
 
 ## Sources
 
