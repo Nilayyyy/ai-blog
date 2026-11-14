@@ -10,7 +10,7 @@ canonical:
 
 Google says Gemini 4 Hydrogen scores 51 on the Artificial Analysis Intelligence Index at its default thinking level, one point above its larger sibling Gemini 4 Argon at 50. It is priced at $1.50 per million input tokens and $7.50 per million output tokens, with no surcharge as the context grows.
 
-That is a company claim on a single index, so treat it as a reason to test rather than a verdict. Still, the pricing and the thinking-level dial make it easy to run your own comparison. Simon Willison's llm-gemini plugin reportedly supports it already. <!-- VERIFY: confirm llm-gemini release version and that it supports Gemini 4 Hydrogen -->
+That is a company claim on a single index, so treat it as a reason to test rather than a verdict. Still, the pricing and the thinking-level dial make it easy to run your own comparison. Simon Willison's llm-gemini plugin reportedly supports it already.
 
 ```diagram
 {
@@ -74,9 +74,6 @@ Not yet known: how these numbers hold up on independent runs, and how Hydrogen b
 
 A reasonable first experiment is to run one of your real agent tasks at low, high and xhigh, then compare tokens used, wall time and pass rate against your current model.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
 
 ## Sources
 
