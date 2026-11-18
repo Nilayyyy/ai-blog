@@ -57,10 +57,6 @@ The implementation provides a verifiable baseline for how the model’s balancin
 
 While this version lacks features like YaRN context extension and node-limited routing, it successfully demonstrates the model's core logic on a local machine. Because the checkpoint is a Python pickle, it is important to load these files only from trusted sources. If you want to explore the architecture, try running the provided `sample.py` to see how the model behaves on public-domain detective fiction, or use the `small` configuration to test the training loop on systems with limited memory.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [GitHub - Vaibhaav-Tiwari/deepseek-v3-jax: DeepSeek V3 (MLA, DeepSeekMoE, aux-loss-free bal](https://github.com/Vaibhaav-Tiwari/deepseek-v3-jax) (Hacker News)
