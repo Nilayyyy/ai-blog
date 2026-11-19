@@ -70,10 +70,6 @@ He also describes the wider reaction as mixed. Astra 6.2 isn't scoring quite as 
 
 Still unknown is how Astra's price-to-quality ratio holds up on real workloads. If you run long agent sessions, compare your actual cached-token bill and how often the model stops to ask unnecessary questions.
 
-## My take
-
-TODO(nilay): add 2-4 sentences from your own experience or opinion, then delete this line.
-
 ## Sources
 
 - [GPT‑6.2 Astra and GPT‑6.2 Sol](https://simonwillison.net/2026/Nov/17/gpt62-astra-and-sol/) (Simon Willison)
